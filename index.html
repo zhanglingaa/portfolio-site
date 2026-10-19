@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>My Portfolio</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 60px 24px;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+      background: #f7f7f7;
+      color: #111;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      margin-bottom: 48px;
+    }
+
+    .header h1 {
+      margin: 0 0 12px;
+      font-size: 40px;
+    }
+
+    .header p {
+      margin: 0;
+      color: #666;
+      font-size: 18px;
+    }
+
+    .projects {
+      display: grid;
+      grid-template-columns:
+        repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .project-card {
+      background: white;
+      border-radius: 20px;
+      padding: 28px;
+      cursor: pointer;
+
+      border: 1px solid #e8e8e8;
+
+      transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .project-card:hover {
+      transform: translateY(-4px);
+
+      box-shadow:
+        0 12px 30px
+        rgba(0, 0, 0, 0.08);
+    }
+
+    .project-logo {
+      width: 64px;
+      height: 64px;
+
+      object-fit: contain;
+
+      border-radius: 14px;
+
+      margin-bottom: 24px;
+    }
+
+    .project-name {
+      font-size: 24px;
+      font-weight: 700;
+
+      margin-bottom: 12px;
+    }
+
+    .project-description {
+      color: #666;
+      line-height: 1.6;
+
+      margin-bottom: 20px;
+    }
+
+    .metadata {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tag {
+      background: #f1f1f1;
+      padding: 6px 10px;
+
+      border-radius: 999px;
+
+      font-size: 13px;
+      color: #555;
+    }
+
+    .status {
+      color: #777;
+      padding: 24px 0;
+    }
+
+    .error {
+      color: #b42318;
+    }
+  </style>
+</head>
+
+
+<body>
+
+  <main class="container">
+
+    <header class="header">
+
+      <h1>My Portfolio</h1>
+
+      <p>
+        AI 产品、原型与个人实验作品
+      </p>
+
+    </header>
+
+
+    <section
+      id="projects"
+      class="projects"
+    >
+
+      <div class="status">
+        正在加载作品...
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <script>
+
+    /*
+      第一版先手动告诉 Portfolio：
+
+      “去读取哪个 GitHub 项目”
+
+      以后这里会升级为自动发现。
+    */
+
+    const projects = [
+
+      {
+        owner: "zhanglingaa",
+        repo: "ai-fenrun",
+        branch: "main"
+      }
+
+    ];
+
+
+    async function loadProject(project) {
+
+      const baseUrl =
+        `https://raw.githubusercontent.com/` +
+        `${project.owner}/` +
+        `${project.repo}/` +
+        `${project.branch}/`;
+
+
+      const portfolioUrl =
+        baseUrl + "portfolio.json";
+
+
+      const response =
+        await fetch(portfolioUrl);
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          `无法读取 ${project.repo}`
+        );
+
+      }
+
+
+      const data =
+        await response.json();
+
+
+      /*
+        安全规则：
+
+        必须明确 visible === true
+        才允许展示。
+      */
+
+      if (data.visible !== true) {
+
+        return null;
+
+      }
+
+
+      /*
+        portfolio.json 里：
+
+        ./logo.png
+
+        会被转换成：
+
+        GitHub 上真正的图片地址
+      */
+
+      const logoUrl =
+        data.logo
+          ? baseUrl +
+            data.logo.replace("./", "")
+          : "";
+
+
+      return {
+
+        ...data,
+
+        logoUrl
+
+      };
+
+    }
+
+
+
+    function createProjectCard(project) {
+
+      const card =
+        document.createElement("article");
+
+
+      card.className =
+        "project-card";
+
+
+      /*
+        点击整个卡片
+        打开 prototypeUrl
+      */
+
+      card.addEventListener(
+        "click",
+        () => {
+
+          window.open(
+            project.prototypeUrl,
+            "_blank",
+            "noopener,noreferrer"
+          );
+
+        }
+      );
+
+
+      /*
+        metadata 自动渲染
+
+        不需要提前知道：
+
+        类型
+        工具
+        模型
+        周期
+
+        有几条就展示几条。
+      */
+
+      const metadataHtml =
+        (project.metadata || [])
+          .map(
+            item =>
+              `<span class="tag">
+                ${item.value}
+              </span>`
+          )
+          .join("");
+
+
+      card.innerHTML = `
+
+        ${
+          project.logoUrl
+
+          ?
+
+          `<img
+            class="project-logo"
+            src="${project.logoUrl}"
+            alt="${project.name}"
+          >`
+
+          :
+
+          ""
+        }
+
+
+        <div class="project-name">
+
+          ${project.name}
+
+        </div>
+
+
+        <div class="project-description">
+
+          ${project.description}
+
+        </div>
+
+
+        <div class="metadata">
+
+          ${metadataHtml}
+
+        </div>
+
+      `;
+
+
+      return card;
+
+    }
+
+
+
+    async function loadProjects() {
+
+      const container =
+        document.getElementById(
+          "projects"
+        );
+
+
+      try {
+
+        const results =
+          await Promise.all(
+            projects.map(loadProject)
+          );
+
+
+        const visibleProjects =
+          results.filter(Boolean);
+
+
+        container.innerHTML = "";
+
+
+        if (
+          visibleProjects.length === 0
+        ) {
+
+          container.innerHTML = `
+
+            <div class="status">
+
+              暂无公开作品
+
+            </div>
+
+          `;
+
+          return;
+
+        }
+
+
+        visibleProjects.forEach(
+          project => {
+
+            container.appendChild(
+              createProjectCard(project)
+            );
+
+          }
+        );
+
+
+      } catch (error) {
+
+        console.error(error);
+
+
+        container.innerHTML = `
+
+          <div class="status error">
+
+            作品加载失败。
+            请检查 portfolio.json。
+
+          </div>
+
+        `;
+
+      }
+
+    }
+
+
+    loadProjects();
+
+  </script>
+
+</body>
+</html>
